@@ -1,6 +1,6 @@
-# hitop action
+# HITOP action
 
-Run a [hitop](https://github.com/bohdaq/hitop) API collection in GitHub Actions. The action runs
+Run a [HITOP](https://github.com/bohdaq/hitop) API collection in GitHub Actions. The action runs
 `hitop run` in the `ghcr.io/bohdaq/hitop` image, uploads the JUnit report as an artifact, writes a
 job summary of every request and check, and fails the step when a request fails.
 
@@ -22,7 +22,7 @@ jobs:
 The collection folder format is described in the
 [collection format spec](https://github.com/bohdaq/hitop/blob/main/spec/collection-format.md);
 `hitop init` and `hitop convert` create one. The full guide is
-[Run hitop in GitHub Actions](https://hitop.rws8.tech/terms/run-hitop-in-github-actions.html).
+[Run HITOP in GitHub Actions](https://hitop.rws8.tech/terms/run-hitop-in-github-actions.html).
 
 ## Requirements
 

@@ -1,9 +1,9 @@
-name: Run hitop collection
-description: Run a hitop API collection in CI, upload the JUnit report and write a job summary.
+name: Run HITOP collection
+description: Run a HITOP API collection in CI, upload the JUnit report and write a job summary.
 author: Bohdan Tsap
 branding:
   icon: check-circle
-  color: blue
+  color: purple
 
 inputs:
   version:
