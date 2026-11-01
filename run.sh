@@ -65,8 +65,14 @@ while IFS= read -r name; do
   docker_env+=(-e "$name")
 done < <(compgen -e | grep '^HITOP_' || true)
 
+# A tag that isn't on ghcr.io but is already on the runner (built by an earlier step, for
+# example to test hitop itself) is used as it is.
 if ! docker pull -q "$image" >/dev/null; then
-  fail "could not pull $image; check the version input (tags: https://github.com/bohdaq/hitop/pkgs/container/hitop)"
+  if docker image inspect "$image" >/dev/null 2>&1; then
+    echo "::notice title=hitop::$image is not on ghcr.io; using the image already on this runner"
+  else
+    fail "could not pull $image; check the version input (tags: https://github.com/bohdaq/hitop/pkgs/container/hitop)"
+  fi
 fi
 
 shown=()

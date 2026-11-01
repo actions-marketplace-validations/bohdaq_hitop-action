@@ -31,6 +31,8 @@ The collection folder format is described in the
   [GitHub Releases](https://github.com/bohdaq/hitop/releases) and run `hitop run` directly.
 - Pin `version`. It is the image tag, so a new hitop release never changes your pipeline until you
   update it. Tags: [ghcr.io/bohdaq/hitop](https://github.com/bohdaq/hitop/pkgs/container/hitop).
+  A tag that isn't on ghcr.io but is already on the runner (an image an earlier step built and
+  tagged `ghcr.io/bohdaq/hitop:<tag>`) is used as it is, with a notice in the log (since v1.0.1).
 
 ## Inputs
 

@@ -194,3 +194,48 @@ jobs:
         run: |
           test "$OUTCOME" = failure
           test "$EXIT" = 2
+
+  local-image:
+    name: Image built on the runner
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Start the mock server
+        run: |
+          python3 test/mock_server.py 8765 &
+          for _ in $(seq 40); do curl -fs http://127.0.0.1:8765/ping && break; sleep 0.25; done
+      - name: A tag that only exists on this runner
+        run: |
+          docker pull -q "ghcr.io/bohdaq/hitop:$TEST_HITOP_VERSION"
+          docker tag "ghcr.io/bohdaq/hitop:$TEST_HITOP_VERSION" ghcr.io/bohdaq/hitop:self-test-local
+      - name: Run with it
+        id: hitop
+        uses: ./
+        with:
+          version: self-test-local
+          path: test/fixtures/api
+          env: ci
+          secrets: |
+            token=s3cret-value
+          artifact-name: ""
+      - name: It ran
+        env:
+          EXIT: ${{ steps.hitop.outputs.exit-code }}
+        run: |
+          test "$EXIT" = 0
+          jq -e '.passed and .summary.requests.total == 3' hitop-reports/report.json
+
+      - name: A tag that is neither on ghcr.io nor on the runner
+        id: missing
+        continue-on-error: true
+        uses: ./
+        with:
+          version: 0.0.0-does-not-exist
+          path: test/fixtures/api
+      - name: The action failed with exit code 2
+        env:
+          OUTCOME: ${{ steps.missing.outcome }}
+          EXIT: ${{ steps.missing.outputs.exit-code }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$EXIT" = 2
