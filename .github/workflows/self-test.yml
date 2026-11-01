@@ -9,10 +9,10 @@ on:
     inputs:
       version:
         description: hitop version (image tag)
-        default: 0.3.0-rc.2
+        default: 0.3.0
 
 env:
-  TEST_HITOP_VERSION: ${{ inputs.version || '0.3.0-rc.2' }}
+  TEST_HITOP_VERSION: ${{ inputs.version || '0.3.0' }}
 
 permissions:
   contents: read

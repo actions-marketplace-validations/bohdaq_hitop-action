@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: bohdaq/hitop-action@v1
         with:
-          version: 0.3.0-rc.2   # pin a hitop version
+          version: 0.3.0   # pin a hitop version
           path: ./my-api        # the collection folder in your repository
           env: staging          # environments/staging.yaml
         env:
@@ -38,7 +38,7 @@ The collection folder format is described in the
 
 | Input | Default | Meaning |
 | --- | --- | --- |
-| `version` | (required) | hitop version, the image tag, for example `0.3.0-rc.2`. |
+| `version` | (required) | hitop version, the image tag, for example `0.3.0`. |
 | `path` | `.` | Collection folder relative to the workspace (or a collection name). |
 | `env` | | Environment from the folder's `environments/` (`--env`). |
 | `env-file` | | Environment file anywhere in the workspace (`--env-file`). Use `env` or `env-file`, not both. |
@@ -99,7 +99,7 @@ report action after this one:
         id: hitop
         continue-on-error: true
         with:
-          version: 0.3.0-rc.2
+          version: 0.3.0
           path: ./my-api
       - uses: dorny/test-reporter@v3
         if: always()
