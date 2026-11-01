@@ -146,6 +146,7 @@ jobs:
           path: hitop-reports/junit.xml
           reporter: java-junit
           fail-on-error: false
+          use-actions-summary: false   # a check run, as well as the job summary of the passing job
 
       - name: Render the JUnit report (mikepenz/action-junit-report)
         if: always()

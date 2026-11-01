@@ -109,7 +109,10 @@ report action after this one:
         run: exit 1
 ```
 
-(`dorny/test-reporter` needs `permissions: checks: write`.) The self-test in this repository runs
+`dorny/test-reporter` v3 writes its report to the job summary; with `use-actions-summary: false` it
+creates a check run instead, which needs `permissions: checks: write`. `mikepenz/action-junit-report`
+creates a check run with one annotation per failed request (title `<collection>.<request>`, message
+the failure line). The self-test in this repository runs
 both `dorny/test-reporter` and `mikepenz/action-junit-report` on hitop's report.
 
 ## License
