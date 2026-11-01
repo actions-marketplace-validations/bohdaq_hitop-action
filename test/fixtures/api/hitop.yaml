@@ -1,0 +1,8 @@
+format: 1
+name: Self-test API
+variables:
+  base: http://127.0.0.1:8765
+order:
+- ping
+- secure
+- users/get-user

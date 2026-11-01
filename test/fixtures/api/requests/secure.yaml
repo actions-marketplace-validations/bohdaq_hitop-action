@@ -1,0 +1,9 @@
+name: Secure
+method: GET
+url: ${base}/secure
+headers:
+- name: Authorization
+  value: Bearer ${token}
+scripts:
+  post: |
+    assert.status(200);

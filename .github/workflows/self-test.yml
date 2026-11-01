@@ -1,0 +1,195 @@
+name: Self-test
+
+# Runs the action from this checkout against test/fixtures and a local mock server
+# (test/mock_server.py): no request leaves the runner.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: hitop version (image tag)
+        default: 0.3.0-rc.2
+
+env:
+  TEST_HITOP_VERSION: ${{ inputs.version || '0.3.0-rc.2' }}
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  passing:
+    name: Passing collection
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Start the mock server
+        run: |
+          python3 test/mock_server.py 8765 &
+          for _ in $(seq 40); do curl -fs http://127.0.0.1:8765/ping && break; sleep 0.25; done
+
+      - name: Run with the secrets input
+        id: input
+        uses: ./
+        with:
+          version: ${{ env.TEST_HITOP_VERSION }}
+          path: test/fixtures/api
+          env: ci
+          secrets: |
+            token=s3cret-value
+          out: reports/input
+          artifact-name: hitop-junit-passing
+
+      - name: Run with a HITOP_SECRET_ env var and --var
+        id: envvar
+        uses: ./
+        env:
+          HITOP_SECRET_CI_TOKEN: s3cret-value
+        with:
+          version: ${{ env.TEST_HITOP_VERSION }}
+          path: test/fixtures/api
+          env: ci
+          vars: |
+            base=http://127.0.0.1:8765
+          args: --timeout 5000
+          out: reports/envvar
+          artifact-name: ""
+          summary: "false"
+
+      - name: Outputs, reports and no secret in them
+        env:
+          INPUT_EXIT: ${{ steps.input.outputs.exit-code }}
+          INPUT_PASSED: ${{ steps.input.outputs.passed }}
+          INPUT_JUNIT: ${{ steps.input.outputs.junit-file }}
+          INPUT_REPORT: ${{ steps.input.outputs.report-file }}
+          ENVVAR_EXIT: ${{ steps.envvar.outputs.exit-code }}
+        run: |
+          set -x
+          test "$INPUT_EXIT" = 0
+          test "$INPUT_PASSED" = true
+          test "$ENVVAR_EXIT" = 0
+          test "$INPUT_JUNIT" = "$GITHUB_WORKSPACE/reports/input/junit.xml"
+          test -f "$INPUT_JUNIT"
+          jq -e '.reportVersion == 1 and .passed and .summary.requests.total == 3' "$INPUT_REPORT"
+          jq -e '.summary.requests.passed == 3' reports/envvar/report.json
+          ! grep -r s3cret-value reports
+          rm -rf reports/envvar   # written as the runner user, so removable
+
+      - name: Render the JUnit report (dorny/test-reporter)
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: JUnit passing (dorny/test-reporter)
+          path: reports/input/junit.xml
+          reporter: java-junit
+          fail-on-empty: false
+
+  failing:
+    name: Failing collection
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Start the mock server
+        run: |
+          python3 test/mock_server.py 8765 &
+          for _ in $(seq 40); do curl -fs http://127.0.0.1:8765/ping && break; sleep 0.25; done
+
+      - name: Run a collection with failures
+        id: hitop
+        continue-on-error: true
+        uses: ./
+        with:
+          version: ${{ env.TEST_HITOP_VERSION }}
+          path: test/fixtures/failing
+          artifact-name: hitop-junit-failing
+
+      - name: The action failed with exit code 1
+        env:
+          OUTCOME: ${{ steps.hitop.outcome }}
+          EXIT: ${{ steps.hitop.outputs.exit-code }}
+          REPORT: ${{ steps.hitop.outputs.report-file }}
+        run: |
+          set -x
+          test "$OUTCOME" = failure
+          test "$EXIT" = 1
+          jq -e '.passed == false and .summary.requests.failed == 3 and .summary.requests.passed == 1' "$REPORT"
+          grep -q 'type="AssertionError"' hitop-reports/junit.xml
+          grep -q 'type="HttpStatus"' hitop-reports/junit.xml
+          grep -q 'type="RequestError"' hitop-reports/junit.xml
+
+      - name: Run with --bail
+        id: bail
+        continue-on-error: true
+        uses: ./
+        with:
+          version: ${{ env.TEST_HITOP_VERSION }}
+          path: test/fixtures/failing
+          args: --bail
+          out: reports/bail
+          artifact-name: ""
+          summary: "false"
+
+      - name: --bail stopped at the first failure
+        env:
+          EXIT: ${{ steps.bail.outputs.exit-code }}
+        run: |
+          set -x
+          test "$EXIT" = 1
+          jq -e '.bailed and .summary.requests.total == 2' reports/bail/report.json
+
+      - name: Render the JUnit report (dorny/test-reporter)
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: JUnit failing (dorny/test-reporter)
+          path: hitop-reports/junit.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Render the JUnit report (mikepenz/action-junit-report)
+        if: always()
+        uses: mikepenz/action-junit-report@v6
+        with:
+          check_name: JUnit failing (mikepenz/action-junit-report)
+          report_paths: hitop-reports/junit.xml
+          fail_on_failure: false
+          detailed_summary: true
+          include_passed: true
+
+  config-error:
+    name: Configuration error
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run with an unknown environment
+        id: hitop
+        continue-on-error: true
+        uses: ./
+        with:
+          version: ${{ env.TEST_HITOP_VERSION }}
+          path: test/fixtures/api
+          env: does-not-exist
+      - name: The action failed with exit code 2
+        env:
+          OUTCOME: ${{ steps.hitop.outcome }}
+          EXIT: ${{ steps.hitop.outputs.exit-code }}
+        run: |
+          set -x
+          test "$OUTCOME" = failure
+          test "$EXIT" = 2
+
+      - name: Run without a version
+        id: noversion
+        continue-on-error: true
+        uses: ./
+        with:
+          version: ""
+          path: test/fixtures/api
+      - name: The action failed with exit code 2
+        env:
+          OUTCOME: ${{ steps.noversion.outcome }}
+          EXIT: ${{ steps.noversion.outputs.exit-code }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$EXIT" = 2

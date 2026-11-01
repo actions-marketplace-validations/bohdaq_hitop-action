@@ -1,0 +1,10 @@
+name: Create order
+method: POST
+url: ${base}/orders
+body:
+  type: json
+  content: '{"item": "book"}'
+scripts:
+  post: |
+    assert.status(201);
+    assert.equal(getResponseValue('id'), 7, 'id');

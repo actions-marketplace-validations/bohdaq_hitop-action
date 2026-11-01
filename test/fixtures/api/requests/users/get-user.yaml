@@ -1,0 +1,7 @@
+name: Get user
+method: GET
+url: ${base}/users/1
+scripts:
+  post: |
+    assert.status(200);
+    assert.equal(getResponseValue('name'), 'Ada', 'name');

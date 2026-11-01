@@ -1,0 +1,9 @@
+format: 1
+name: Self-test failures
+variables:
+  base: http://127.0.0.1:8765
+order:
+- ping
+- create-order
+- broken
+- no-server
